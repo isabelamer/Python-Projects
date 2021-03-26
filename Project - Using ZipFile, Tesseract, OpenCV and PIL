@@ -8,3 +8,93 @@ import numpy as np
 # loading the face detection classifier
 face_cascade = cv.CascadeClassifier('readonly/haarcascade_frontalface_default.xml')
 
+#Converting image to strings using Tesseract, and storing it in a list:
+text_list = []
+for txts in file_imgs:
+    text = pytesseract.image_to_string(txts)
+    text_list.append(text)  
+
+#Reading the zip file:
+with ZipFile('readonly/small_img.zip', "r") as fileref:
+#Getting a list of files using .infolist():
+    listoffiles = fileref.infolist()
+    file_names = []
+    file_imgs = []
+    
+#Iterating over the list from .infolist():
+    for elem in listoffiles: #Iterating through objects from .infolist():
+        file_names.append(elem.filename)
+        with fileref.open(elem) as file:
+            img = Image.open(file).convert('RGB')
+            file_imgs.append(img)
+
+#Storing the PIL.Image Objects and text in a dictionary. The dictionary is indexed by file name:
+dic = {}
+for i, l, m in zip(file_names, file_imgs, text_list):
+    dic[i] = {'pil_img':l, 'text':m}
+
+#Cropping faces using OpenCV:
+for images in dic.keys():
+    #Reading image
+    img = np.array(dic[images]['pil_img'])
+    #Converting to gray scale
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    #Creating bounding boxes
+    faces = face_cascade.detectMultiScale(gray, scaleFactor = 1.3, minNeighbors = 5) #Parameters between 1.3 and 1.4 seem to work
+    dic[images]['faces'] = [] #updating dic
+    for x, y, w, h in faces:
+        face = dic[images]['pil_img'].crop((x,y,x+w,y+h))
+        face.thumbnail((100,100)) #Creating a thumbnail
+        dic[images]['faces'].append(face)
+
+
+#Testing how many positive results there are in each file:
+def testing_faces(namesearch):
+    #Using if to sort through strings and find the keyword:
+    text_search = []
+    for name in text_list:
+        if namesearch in name:
+            text_search.append(True)
+        else: 
+            text_search.append(False)
+    n = 0
+    for txt in text_search:
+        if txt == True:
+            n = n + 1
+    
+    return print("Keyword {} has {} positive result(s)\n".format(namesearch, n))
+
+
+#Creating contact sheet and pasting the faces:
+contactsheet = []
+for name in dic:
+    if(len(dic[name]['faces']) != 0):
+        contact_sheet = Image.new('RGB',(500, 100*2), color = 'black')
+        x = 0
+        y = 0
+        for img in dic[name]['faces']:
+            contact_sheet.paste(img, (x, y))
+            if x + 100 == contact_sheet.width:
+                x = 0
+                y += 100
+            else:
+                x += 100
+        contactsheet.append(contact_sheet)
+
+def face_search(name_search):
+#Dictionary with contact sheets:
+    dic2 = {}
+    for file_name, cont_sheet in zip(file_names, contactsheet):
+        dic2[file_name] = cont_sheet
+   
+    #Printing correct sheets:
+    for name in dic:
+        if (name_search in dic[name]['text']):
+            if(len(dic[name]['faces']) > 0):
+                print("Result found in file {}".format(name)) 
+                display(dic2[name])  
+            elif:
+                print("Result found in file {}".format(name))
+                print('But there were no faces in that file!\n')
+                       
+    return 
