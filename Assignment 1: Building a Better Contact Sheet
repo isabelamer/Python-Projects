@@ -1,0 +1,86 @@
+import PIL
+from PIL import Image, ImageEnhance, ImageDraw, ImageFont, ImageColor
+from IPython.display import display
+
+#read image and convert to RGB
+image=Image.open("readonly/msi_recruitment.gif")
+image=image.convert('RGB')
+
+#Variables
+images = []
+intensity = [0.1, 0.5, 0.9]
+b, r, g = 0,1,2 #colours Blue, Red and Green
+width, height = image.size
+new_img = Image.new('RGB', (image.width, image.height+100))
+
+def image_intensity(inten, pic, colour):
+    out_img = PIL.Image.new(pic.mode, (new_img.width, new_img.height))
+
+    for hei in range(height):
+        for wid in range(width):
+            col = pic.getpixel((wid, hei))
+            if colour == 0:
+                out_img.putpixel((wid, hei), (int(col[0]*inten),col[1],col[2]))
+            elif colour == 1:
+                out_img.putpixel((wid, hei), (col[0],int(col[1]*inten),col[2]))    
+            elif colour == 2:
+                out_img.putpixel((wid, hei), (col[0],col[1],int(col[2]*inten)))    
+    return out_img
+
+def image_text(inten2, col, imag):
+    Object_Draw = ImageDraw.Draw(imag)
+    Object_Draw.text((10,450), "channel {} intensity {}".format(col, inten2), font = ImageFont.truetype('readonly/fanwood-webfont.ttf', 60), align = 'left', fill = '#FFFFFF')
+
+#Blue loop
+for imgs in intensity:
+    R, G, B = new_img.split() #colours Red, Green, Blue
+    
+    blue_img = Image.merge('RGB', (R, G, B))
+    row = PIL.Image.new(blue_img.mode, (blue_img.width, blue_img.height + new_img.height))
+    row.paste(image, (0,0))
+    
+    images.append(image_intensity(imgs, row, b))
+    image_text(imgs, b, images[-1])
+
+for imgs in intensity:
+#Red loop
+    R, G, B = new_img.split() #colours Red, Green, Blue
+    
+    red_img = Image.merge('RGB', (R, G, B))
+    row = PIL.Image.new(red_img.mode, (red_img.width, red_img.height + new_img.height))
+    row.paste(image, (0,0))
+    
+    images.append(image_intensity(imgs, row, r))
+    image_text(imgs, r, images[-1])
+    
+for imgs in intensity:
+#Green loop
+    R, G, B = new_img.split() #colours Red, Green, Blue
+    
+    green_img = Image.merge('RGB', (R, G, B))
+    row = PIL.Image.new(green_img.mode, (green_img.width, green_img.height + new_img.height))
+    row.paste(image, (0,0))
+    
+    images.append(image_intensity(imgs, row, g))
+    image_text(imgs, g, images[-1])
+
+#Contact sheet from different brightnesses and colours
+first_image = images[0]
+
+contact_sheet=PIL.Image.new(first_image.mode, (first_image.width*3,(first_image.height)*3))
+x=0
+y=0
+
+for img in images:
+    contact_sheet.paste(img, (x, y))
+    if x+first_image.width == contact_sheet.width:
+        x=0
+        y=y+first_image.height
+    else:
+        x=x+first_image.width
+
+#Resize sheet
+contact_sheet = contact_sheet.resize((int(contact_sheet.width/2),int(contact_sheet.height/2) ))
+
+#Display the contact
+display(contact_sheet)
